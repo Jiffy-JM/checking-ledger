@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% from "_macros.html" import amount, category_dot with context %}
+{% block title %}Transactions{% endblock %}
+{% block content %}
+<section>
+  <div class="mb-3 flex items-baseline justify-between">
+    <h1 class="section-title text-lg">Hourly pay</h1>
+    <a href="{{ url_for('new_pay') }}" class="text-sm font-semibold text-ledger">Add hourly pay</a>
+  </div>
+  <p class="hint -mt-2 mb-3">For paychecks that change. Give your rate and usual hours, enter each paycheck when it arrives, and every future payday gets an estimate. <a href="{{ url_for('help_page') }}#help-pay" class="font-semibold text-ledger">How it works</a></p>
+  {% if pays %}
+  <ul class="panel divide-y divide-rule">
+    {% for pay, nxt in pays %}
+    <li>
+      <a href="{{ url_for('edit_pay', pay_id=pay.id) }}" class="row-link {{ 'opacity-50' if not pay.active }}">
+        <div class="min-w-0 flex-1">
+          <div class="truncate font-medium">{{ pay.description }}</div>
+          <div class="flex items-center gap-1.5 text-[13px] text-muted">{{ category_dot('income') }}{{ plain(pay.hours) }} hours a week at {{ money(pay.rate) }}, {{ FREQUENCIES[pay.frequency]|lower }}{% if not pay.active %}, paused{% endif %}</div>
+        </div>
+        {% if nxt %}
+        <div class="text-right">
+          {% if nxt.entered %}{{ amount(nxt.entered.amount) }}<div class="text-[12px] text-muted">{{ fmt_date(nxt.payday, year=False) }}, entered</div>
+          {% else %}{{ amount(nxt.estimate.amount) }}<div class="text-[12px] text-muted">{{ fmt_date(nxt.payday, year=False) }}, estimate</div>{% endif %}
+        </div>
+        {% endif %}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <a href="{{ url_for('new_pay') }}" class="panel block px-4 py-5 text-sm text-muted">No hourly pay yet. <span class="font-semibold text-ledger">Add it if your paychecks vary</span></a>
+  {% endif %}
+</section>
+
+<section class="mt-9">
+  <div class="mb-3 flex items-baseline justify-between">
+    <h2 class="section-title text-lg">Credit cards</h2>
+    <a href="{{ url_for('new_card') }}" class="text-sm font-semibold text-ledger">Add card</a>
+  </div>
+  <p class="hint -mt-2 mb-3">Set each card's closing day and due day once. Every future due date then gets a payment in your projection: an estimate until you enter the statement amount. <a href="{{ url_for('help_page') }}#help-cards" class="font-semibold text-ledger">How it works</a></p>
+  {% if cards %}
+  <ul class="panel divide-y divide-rule">
+    {% for card, nxt in cards %}
+    <li>
+      <a href="{{ url_for('edit_card', card_id=card.id) }}" class="row-link {{ 'opacity-50' if not card.active }}">
+        <div class="min-w-0 flex-1">
+          <div class="truncate font-medium">{{ card.description }}</div>
+          <div class="flex items-center gap-1.5 text-[13px] text-muted">{{ category_dot('creditcard') }}Closes the {{ ordinal(card.close_day) }}, due the {{ ordinal(card.due_day) }}{% if not card.active %}, paused{% endif %}</div>
+        </div>
+        <div class="text-right">
+          {% if nxt.entered %}{{ amount(nxt.entered.amount) }}<div class="text-[12px] text-muted">{{ fmt_date(nxt.due, year=False) }}, entered</div>
+          {% elif nxt.estimate %}{{ amount(-nxt.estimate.amount) }}<div class="text-[12px] text-muted">{{ fmt_date(nxt.due, year=False) }}, estimate</div>
+          {% else %}<span class="text-[13px] text-muted">No estimate yet</span>{% endif %}
+        </div>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <a href="{{ url_for('new_card') }}" class="panel block px-4 py-5 text-sm text-muted">No cards yet. <span class="font-semibold text-ledger">Add a card to forecast its payments</span></a>
+  {% endif %}
+</section>
+
+<section class="mt-9">
+  <div class="mb-3 flex items-baseline justify-between">
+    <h2 class="section-title text-lg">One-time</h2>
+    <a href="{{ url_for('new_transaction', type='onetime') }}" class="text-sm font-semibold text-ledger">Add one-time</a>
+  </div>
+  <p class="hint -mt-2 mb-3">Single payments on a set date, like a credit card payment. Past ones move to History when you update your balance.</p>
+  {% if upcoming %}
+  <ul class="panel divide-y divide-rule">
+    {% for r in upcoming %}
+    <li>
+      <a href="{{ url_for('edit_transaction', row_id=r.id) }}" class="row-link {{ 'opacity-50' if not r.active }}">
+        <div class="min-w-0 flex-1">
+          <div class="truncate font-medium">{{ r.description }}</div>
+          <div class="flex items-center gap-1.5 text-[13px] text-muted">{{ category_dot(r.category) }}{{ CATEGORIES[r.category] }}, {{ fmt_date(r.date) }}{% if not r.active %}, paused{% endif %}{% if r.estimate == 'assumed' %}<span class="tag">estimate</span>{% endif %}</div>
+        </div>
+        {{ amount(r.amount) }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <a href="{{ url_for('new_transaction', type='onetime') }}" class="panel block px-4 py-5 text-sm text-muted">No upcoming one-time transactions. <span class="font-semibold text-ledger">Add your next card payment</span></a>
+  {% endif %}
+</section>
+
+<section class="mt-9">
+  <div class="mb-3 flex items-baseline justify-between">
+    <h2 class="section-title text-lg">Recurring</h2>
+    <a href="{{ url_for('new_transaction', type='recurring') }}" class="text-sm font-semibold text-ledger">Add recurring</a>
+  </div>
+  <p class="hint -mt-2 mb-3">Paychecks, rent, subscriptions, and automatic transfers.</p>
+  {% if recurring %}
+  <ul class="panel divide-y divide-rule">
+    {% for r in recurring %}
+    <li>
+      <a href="{{ url_for('edit_transaction', row_id=r.id) }}" class="row-link {{ 'opacity-50' if not r.active }}">
+        <div class="min-w-0 flex-1">
+          <div class="truncate font-medium">{{ r.description }}</div>
+          <div class="flex items-center gap-1.5 text-[13px] text-muted">{{ category_dot(r.category) }}{{ FREQUENCIES[r.frequency] }}{% if not r.active %}, paused{% elif nexts[r.id] %}, next {{ fmt_date(nexts[r.id], year=False) }}{% endif %}</div>
+        </div>
+        {{ amount(r.amount) }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <a href="{{ url_for('new_transaction', type='recurring') }}" class="panel block px-4 py-5 text-sm text-muted">No recurring transactions yet. <span class="font-semibold text-ledger">Add your rent or a subscription</span></a>
+  {% endif %}
+</section>
+
+<div class="h-16 sm:hidden" aria-hidden="true"></div>
+<a href="{{ url_for('new_transaction') }}" class="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-ledger text-onaccent shadow-lg shadow-ink/20 sm:hidden" aria-label="Add transaction">
+  <svg viewBox="0 0 24 24" class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+</a>
+{% endblock %}
