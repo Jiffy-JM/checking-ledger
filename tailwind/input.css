@@ -1,0 +1,644 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Public Sans";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("fonts/public-sans.woff2") format("woff2");
+}
+
+@layer base {
+  /* Themes. Each sets the same ten colors (as "R G B") for light and dark.
+     --ledger is the accent (buttons, links, chart line), --gain is money in,
+     --debit is money out, --card is credit card, --onaccent is text on a
+     button. The theme and mode come from <html data-theme data-mode>; mode
+     "auto" follows the device. To change a color, edit it here and run
+     ./tailwind/build.sh. To add a theme, copy a block and list it in themes.py. */
+
+  /* Sage (the original look) */
+  :root, [data-theme="sage"] {
+    --paper: 243 246 241;
+    --surface: 255 255 255;
+    --ink: 19 32 28;
+    --muted: 94 107 102;
+    --rule: 217 224 219;
+    --ledger: 24 112 79;
+    --gain: 24 112 79;
+    --debit: 178 59 50;
+    --card: 90 75 176;
+    --onaccent: 255 255 255;
+    color-scheme: light;
+  }
+  [data-theme="sage"][data-mode="dark"] {
+    --paper: 13 22 19;
+    --surface: 21 33 29;
+    --ink: 230 237 233;
+    --muted: 146 163 156;
+    --rule: 38 53 47;
+    --ledger: 86 200 148;
+    --gain: 86 200 148;
+    --debit: 240 133 122;
+    --card: 172 158 242;
+    --onaccent: 13 22 19;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]):not([data-mode="light"]), [data-theme="sage"]:not([data-mode="light"]) {
+      --paper: 13 22 19;
+      --surface: 21 33 29;
+      --ink: 230 237 233;
+      --muted: 146 163 156;
+      --rule: 38 53 47;
+      --ledger: 86 200 148;
+      --gain: 86 200 148;
+      --debit: 240 133 122;
+      --card: 172 158 242;
+      --onaccent: 13 22 19;
+      color-scheme: dark;
+    }
+  }
+
+  /* Indigo */
+  [data-theme="indigo"] {
+    --paper: 247 248 255;
+    --surface: 236 238 252;
+    --ink: 20 26 58;
+    --muted: 92 102 149;
+    --rule: 211 216 243;
+    --ledger: 79 70 229;
+    --gain: 24 112 79;
+    --debit: 178 59 50;
+    --card: 87 90 213;
+    --onaccent: 255 255 255;
+    color-scheme: light;
+  }
+  [data-theme="indigo"][data-mode="dark"] {
+    --paper: 6 7 15;
+    --surface: 13 15 28;
+    --ink: 233 236 251;
+    --muted: 146 154 192;
+    --rule: 31 36 64;
+    --ledger: 139 140 255;
+    --gain: 86 200 148;
+    --debit: 240 133 122;
+    --card: 165 180 252;
+    --onaccent: 6 7 15;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    [data-theme="indigo"]:not([data-mode="light"]) {
+      --paper: 6 7 15;
+      --surface: 13 15 28;
+      --ink: 233 236 251;
+      --muted: 146 154 192;
+      --rule: 31 36 64;
+      --ledger: 139 140 255;
+      --gain: 86 200 148;
+      --debit: 240 133 122;
+      --card: 165 180 252;
+      --onaccent: 6 7 15;
+      color-scheme: dark;
+    }
+  }
+
+  /* Violet */
+  [data-theme="violet"] {
+    --paper: 250 248 255;
+    --surface: 241 236 251;
+    --ink: 30 21 51;
+    --muted: 107 95 140;
+    --rule: 220 211 240;
+    --ledger: 124 58 237;
+    --gain: 24 112 79;
+    --debit: 178 59 50;
+    --card: 140 70 205;
+    --onaccent: 255 255 255;
+    color-scheme: light;
+  }
+  [data-theme="violet"][data-mode="dark"] {
+    --paper: 9 7 15;
+    --surface: 17 14 26;
+    --ink: 237 233 250;
+    --muted: 154 146 179;
+    --rule: 41 34 58;
+    --ledger: 167 139 250;
+    --gain: 86 200 148;
+    --debit: 240 133 122;
+    --card: 192 132 252;
+    --onaccent: 9 7 15;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    [data-theme="violet"]:not([data-mode="light"]) {
+      --paper: 9 7 15;
+      --surface: 17 14 26;
+      --ink: 237 233 250;
+      --muted: 154 146 179;
+      --rule: 41 34 58;
+      --ledger: 167 139 250;
+      --gain: 86 200 148;
+      --debit: 240 133 122;
+      --card: 192 132 252;
+      --onaccent: 9 7 15;
+      color-scheme: dark;
+    }
+  }
+
+  /* Electric Purple */
+  [data-theme="neon"] {
+    --paper: 251 247 255;
+    --surface: 243 233 255;
+    --ink: 34 16 58;
+    --muted: 117 89 158;
+    --rule: 226 207 250;
+    --ledger: 147 51 234;
+    --gain: 24 112 79;
+    --debit: 178 59 50;
+    --card: 169 34 186;
+    --onaccent: 255 255 255;
+    color-scheme: light;
+  }
+  [data-theme="neon"][data-mode="dark"] {
+    --paper: 7 6 11;
+    --surface: 15 11 23;
+    --ink: 243 236 255;
+    --muted: 162 143 201;
+    --rule: 43 27 68;
+    --ledger: 180 92 255;
+    --gain: 86 200 148;
+    --debit: 240 133 122;
+    --card: 232 121 249;
+    --onaccent: 7 6 11;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    [data-theme="neon"]:not([data-mode="light"]) {
+      --paper: 7 6 11;
+      --surface: 15 11 23;
+      --ink: 243 236 255;
+      --muted: 162 143 201;
+      --rule: 43 27 68;
+      --ledger: 180 92 255;
+      --gain: 86 200 148;
+      --debit: 240 133 122;
+      --card: 232 121 249;
+      --onaccent: 7 6 11;
+      color-scheme: dark;
+    }
+  }
+
+  /* Orchid */
+  [data-theme="orchid"] {
+    --paper: 254 248 255;
+    --surface: 251 234 253;
+    --ink: 45 16 51;
+    --muted: 130 90 139;
+    --rule: 240 205 245;
+    --ledger: 180 36 198;
+    --gain: 24 112 79;
+    --debit: 178 59 50;
+    --card: 194 35 105;
+    --onaccent: 255 255 255;
+    color-scheme: light;
+  }
+  [data-theme="orchid"][data-mode="dark"] {
+    --paper: 11 7 13;
+    --surface: 20 14 23;
+    --ink: 247 236 248;
+    --muted: 171 146 178;
+    --rule: 52 33 58;
+    --ledger: 232 121 249;
+    --gain: 86 200 148;
+    --debit: 240 133 122;
+    --card: 244 114 182;
+    --onaccent: 11 7 13;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    [data-theme="orchid"]:not([data-mode="light"]) {
+      --paper: 11 7 13;
+      --surface: 20 14 23;
+      --ink: 247 236 248;
+      --muted: 171 146 178;
+      --rule: 52 33 58;
+      --ledger: 232 121 249;
+      --gain: 86 200 148;
+      --debit: 240 133 122;
+      --card: 244 114 182;
+      --onaccent: 11 7 13;
+      color-scheme: dark;
+    }
+  }
+
+  /* Ocean */
+  [data-theme="ocean"] {
+    --paper: 246 248 250;
+    --surface: 234 238 242;
+    --ink: 27 31 36;
+    --muted: 99 108 118;
+    --rule: 208 215 222;
+    --ledger: 8 99 205;
+    --gain: 24 112 79;
+    --debit: 178 59 50;
+    --card: 24 119 52;
+    --onaccent: 255 255 255;
+    color-scheme: light;
+  }
+  [data-theme="ocean"][data-mode="dark"] {
+    --paper: 11 11 11;
+    --surface: 18 18 18;
+    --ink: 232 232 232;
+    --muted: 154 154 154;
+    --rule: 38 38 38;
+    --ledger: 25 167 255;
+    --gain: 86 200 148;
+    --debit: 240 133 122;
+    --card: 61 220 132;
+    --onaccent: 11 11 11;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    [data-theme="ocean"]:not([data-mode="light"]) {
+      --paper: 11 11 11;
+      --surface: 18 18 18;
+      --ink: 232 232 232;
+      --muted: 154 154 154;
+      --rule: 38 38 38;
+      --ledger: 25 167 255;
+      --gain: 86 200 148;
+      --debit: 240 133 122;
+      --card: 61 220 132;
+      --onaccent: 11 11 11;
+      color-scheme: dark;
+    }
+  }
+
+  /* Amethyst Gold */
+  [data-theme="gold"] {
+    --paper: 252 249 255;
+    --surface: 243 237 249;
+    --ink: 31 21 48;
+    --muted: 108 97 132;
+    --rule: 225 214 238;
+    --ledger: 138 90 0;
+    --gain: 24 112 79;
+    --debit: 178 59 50;
+    --card: 124 58 237;
+    --onaccent: 255 255 255;
+    color-scheme: light;
+  }
+  [data-theme="gold"][data-mode="dark"] {
+    --paper: 10 7 13;
+    --surface: 20 15 26;
+    --ink: 240 235 247;
+    --muted: 157 147 173;
+    --rule: 43 34 54;
+    --ledger: 229 184 75;
+    --gain: 86 200 148;
+    --debit: 240 133 122;
+    --card: 167 139 250;
+    --onaccent: 10 7 13;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    [data-theme="gold"]:not([data-mode="light"]) {
+      --paper: 10 7 13;
+      --surface: 20 15 26;
+      --ink: 240 235 247;
+      --muted: 157 147 173;
+      --rule: 43 34 54;
+      --ledger: 229 184 75;
+      --gain: 86 200 148;
+      --debit: 240 133 122;
+      --card: 167 139 250;
+      --onaccent: 10 7 13;
+      color-scheme: dark;
+    }
+  }
+
+  /* Synthwave */
+  [data-theme="synth"] {
+    --paper: 254 248 255;
+    --surface: 248 234 253;
+    --ink: 42 15 58;
+    --muted: 124 93 155;
+    --rule: 236 208 246;
+    --ledger: 196 23 125;
+    --gain: 24 112 79;
+    --debit: 178 59 50;
+    --card: 8 113 139;
+    --onaccent: 255 255 255;
+    color-scheme: light;
+  }
+  [data-theme="synth"][data-mode="dark"] {
+    --paper: 11 6 20;
+    --surface: 21 11 36;
+    --ink: 246 238 255;
+    --muted: 164 147 201;
+    --rule: 45 26 77;
+    --ledger: 255 79 216;
+    --gain: 86 200 148;
+    --debit: 240 133 122;
+    --card: 34 211 238;
+    --onaccent: 11 6 20;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    [data-theme="synth"]:not([data-mode="light"]) {
+      --paper: 11 6 20;
+      --surface: 21 11 36;
+      --ink: 246 238 255;
+      --muted: 164 147 201;
+      --rule: 45 26 77;
+      --ledger: 255 79 216;
+      --gain: 86 200 148;
+      --debit: 240 133 122;
+      --card: 34 211 238;
+      --onaccent: 11 6 20;
+      color-scheme: dark;
+    }
+  }
+
+  /* Nightshade */
+  [data-theme="teal"] {
+    --paper: 246 250 251;
+    --surface: 233 242 244;
+    --ink: 16 34 42;
+    --muted: 86 108 120;
+    --rule: 211 226 230;
+    --ledger: 15 118 110;
+    --gain: 24 112 79;
+    --debit: 178 59 50;
+    --card: 109 40 217;
+    --onaccent: 255 255 255;
+    color-scheme: light;
+  }
+  [data-theme="teal"][data-mode="dark"] {
+    --paper: 7 9 16;
+    --surface: 14 17 25;
+    --ink: 232 241 245;
+    --muted: 143 160 173;
+    --rule: 29 35 49;
+    --ledger: 45 212 191;
+    --gain: 86 200 148;
+    --debit: 240 133 122;
+    --card: 167 139 250;
+    --onaccent: 7 9 16;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    [data-theme="teal"]:not([data-mode="light"]) {
+      --paper: 7 9 16;
+      --surface: 14 17 25;
+      --ink: 232 241 245;
+      --muted: 143 160 173;
+      --rule: 29 35 49;
+      --ledger: 45 212 191;
+      --gain: 86 200 148;
+      --debit: 240 133 122;
+      --card: 167 139 250;
+      --onaccent: 7 9 16;
+      color-scheme: dark;
+    }
+  }
+
+  /* Ember Violet */
+  [data-theme="ember"] {
+    --paper: 255 250 247;
+    --surface: 251 239 232;
+    --ink: 45 26 20;
+    --muted: 128 101 90;
+    --rule: 240 220 207;
+    --ledger: 194 65 12;
+    --gain: 24 112 79;
+    --debit: 178 59 50;
+    --card: 190 24 93;
+    --onaccent: 255 255 255;
+    color-scheme: light;
+  }
+  [data-theme="ember"][data-mode="dark"] {
+    --paper: 13 8 16;
+    --surface: 23 15 26;
+    --ink: 246 238 242;
+    --muted: 168 146 159;
+    --rule: 47 32 53;
+    --ledger: 251 146 60;
+    --gain: 86 200 148;
+    --debit: 240 133 122;
+    --card: 244 114 182;
+    --onaccent: 13 8 16;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    [data-theme="ember"]:not([data-mode="light"]) {
+      --paper: 13 8 16;
+      --surface: 23 15 26;
+      --ink: 246 238 242;
+      --muted: 168 146 159;
+      --rule: 47 32 53;
+      --ledger: 251 146 60;
+      --gain: 86 200 148;
+      --debit: 240 133 122;
+      --card: 244 114 182;
+      --onaccent: 13 8 16;
+      color-scheme: dark;
+    }
+  }
+
+  /* Lavender Mist */
+  [data-theme="mist"] {
+    --paper: 247 245 252;
+    --surface: 236 232 247;
+    --ink: 34 28 53;
+    --muted: 109 101 137;
+    --rule: 217 211 236;
+    --ledger: 94 75 196;
+    --gain: 24 112 79;
+    --debit: 178 59 50;
+    --card: 102 91 176;
+    --onaccent: 255 255 255;
+    color-scheme: light;
+  }
+  [data-theme="mist"][data-mode="dark"] {
+    --paper: 19 17 25;
+    --surface: 27 24 36;
+    --ink: 235 232 244;
+    --muted: 157 151 179;
+    --rule: 46 42 61;
+    --ledger: 196 181 253;
+    --gain: 86 200 148;
+    --debit: 240 133 122;
+    --card: 221 214 254;
+    --onaccent: 19 17 25;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    [data-theme="mist"]:not([data-mode="light"]) {
+      --paper: 19 17 25;
+      --surface: 27 24 36;
+      --ink: 235 232 244;
+      --muted: 157 151 179;
+      --rule: 46 42 61;
+      --ledger: 196 181 253;
+      --gain: 86 200 148;
+      --debit: 240 133 122;
+      --card: 221 214 254;
+      --onaccent: 19 17 25;
+      color-scheme: dark;
+    }
+  }
+
+  /* Ultraviolet */
+  [data-theme="ultra"] {
+    --paper: 246 239 255;
+    --surface: 234 220 255;
+    --ink: 32 10 69;
+    --muted: 109 79 160;
+    --rule: 214 191 247;
+    --ledger: 107 33 168;
+    --gain: 24 112 79;
+    --debit: 178 59 50;
+    --card: 162 28 175;
+    --onaccent: 255 255 255;
+    color-scheme: light;
+  }
+  [data-theme="ultra"][data-mode="dark"] {
+    --paper: 18 6 43;
+    --surface: 27 11 61;
+    --ink: 244 236 255;
+    --muted: 170 146 220;
+    --rule: 53 24 107;
+    --ledger: 216 180 254;
+    --gain: 86 200 148;
+    --debit: 240 133 122;
+    --card: 240 171 252;
+    --onaccent: 18 6 43;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    [data-theme="ultra"]:not([data-mode="light"]) {
+      --paper: 18 6 43;
+      --surface: 27 11 61;
+      --ink: 244 236 255;
+      --muted: 170 146 220;
+      --rule: 53 24 107;
+      --ledger: 216 180 254;
+      --gain: 86 200 148;
+      --debit: 240 133 122;
+      --card: 240 171 252;
+      --onaccent: 18 6 43;
+      color-scheme: dark;
+    }
+  }
+
+  /* Mono Ink */
+  [data-theme="ink"] {
+    --paper: 255 255 255;
+    --surface: 244 244 245;
+    --ink: 24 24 27;
+    --muted: 102 102 110;
+    --rule: 228 228 231;
+    --ledger: 24 24 27;
+    --gain: 24 112 79;
+    --debit: 178 59 50;
+    --card: 124 58 237;
+    --onaccent: 255 255 255;
+    color-scheme: light;
+  }
+  [data-theme="ink"][data-mode="dark"] {
+    --paper: 6 6 6;
+    --surface: 15 15 15;
+    --ink: 244 244 245;
+    --muted: 152 152 159;
+    --rule: 35 35 35;
+    --ledger: 244 244 245;
+    --gain: 86 200 148;
+    --debit: 240 133 122;
+    --card: 167 139 250;
+    --onaccent: 6 6 6;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    [data-theme="ink"]:not([data-mode="light"]) {
+      --paper: 6 6 6;
+      --surface: 15 15 15;
+      --ink: 244 244 245;
+      --muted: 152 152 159;
+      --rule: 35 35 35;
+      --ledger: 244 244 245;
+      --gain: 86 200 148;
+      --debit: 240 133 122;
+      --card: 167 139 250;
+      --onaccent: 6 6 6;
+      color-scheme: dark;
+    }
+  }
+
+  /* Grape Soda */
+  [data-theme="grape"] {
+    --paper: 248 242 255;
+    --surface: 238 226 253;
+    --ink: 35 16 64;
+    --muted: 112 86 154;
+    --rule: 220 198 246;
+    --ledger: 63 98 18;
+    --gain: 24 112 79;
+    --debit: 178 59 50;
+    --card: 162 28 175;
+    --onaccent: 255 255 255;
+    color-scheme: light;
+  }
+  [data-theme="grape"][data-mode="dark"] {
+    --paper: 20 10 36;
+    --surface: 29 16 51;
+    --ink: 243 236 255;
+    --muted: 168 147 207;
+    --rule: 58 33 96;
+    --ledger: 163 230 53;
+    --gain: 86 200 148;
+    --debit: 240 133 122;
+    --card: 232 121 249;
+    --onaccent: 20 10 36;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    [data-theme="grape"]:not([data-mode="light"]) {
+      --paper: 20 10 36;
+      --surface: 29 16 51;
+      --ink: 243 236 255;
+      --muted: 168 147 207;
+      --rule: 58 33 96;
+      --ledger: 163 230 53;
+      --gain: 86 200 148;
+      --debit: 240 133 122;
+      --card: 232 121 249;
+      --onaccent: 20 10 36;
+      color-scheme: dark;
+    }
+  }
+  html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+  body { @apply bg-paper font-sans text-ink antialiased; font-feature-settings: "tnum" 1; }
+  input, select, textarea { font-size: 16px; } /* stops iOS zooming in on focus */
+  :focus-visible { @apply outline-none ring-2 ring-ledger ring-offset-2 ring-offset-paper; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+}
+
+@layer components {
+  .panel { @apply overflow-hidden rounded-2xl bg-surface ring-1 ring-rule; }
+  .section-title { @apply text-[15px] font-semibold tracking-tight; }
+  .hint { @apply text-sm leading-snug text-muted; }
+  .label { @apply mb-1.5 block text-sm font-medium; }
+  .field { @apply block min-h-[48px] w-full appearance-none rounded-[10px] border border-rule bg-paper px-3.5 py-3 text-base text-ink placeholder:text-muted/70 focus:border-ledger focus:bg-surface focus:outline-none focus:ring-2 focus:ring-ledger/25; }
+  .field-error { @apply mt-1.5 text-sm text-debit; }
+  .btn { @apply inline-flex min-h-[48px] select-none items-center justify-center gap-2 rounded-[10px] px-5 text-[15px] font-semibold transition-transform active:scale-[.98]; }
+  .btn-primary { @apply btn bg-ledger text-onaccent; }
+  .btn-quiet { @apply btn bg-surface text-ink ring-1 ring-inset ring-rule; }
+  .btn-danger { @apply btn bg-surface text-debit ring-1 ring-inset ring-rule; }
+  .row-link { @apply flex min-h-[64px] items-center gap-3 px-4 py-3 active:bg-paper sm:hover:bg-paper; }
+  .amount-in { @apply text-gain; }
+  .tag { @apply ml-1.5 inline-block whitespace-nowrap rounded-full px-1.5 align-middle text-[11px] font-semibold leading-relaxed text-card ring-1 ring-inset ring-card/50; }
+  .amount-out { @apply text-debit; }
+}

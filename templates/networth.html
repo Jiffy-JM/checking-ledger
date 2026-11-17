@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, chart_box, upload_form with context %}
+{% block title %}Net worth{% endblock %}
+{% block content %}
+{% set active_accounts = accounts|selectattr('active')|list %}
+{% if snaps %}
+{% set now = snaps[0] %}
+<section data-chart-root>
+  <p class="text-sm font-medium text-muted" data-readout-d>Net worth on {{ fmt_date(now.date) }}</p>
+  <p class="mt-1 text-[44px] font-bold leading-none tracking-[-0.03em] sm:text-6xl {{ 'text-debit' if now.net < 0 }}" data-readout-b>{{ money(now.net) }}</p>
+  <p class="mt-2 min-h-[1.25rem] text-sm text-muted" data-readout-l>
+    {% if snaps|length > 1 %}{{ money(now.net - snaps[1].net, signed=True) }} since {{ fmt_date(snaps[1].date) }}{% else %}Your first snapshot{% endif %}
+  </p>
+  {% if snaps|length > 1 %}{{ chart_box(chart, 'Net worth from ' ~ fmt_date(snaps[-1].date) ~ ' to ' ~ fmt_date(now.date)) }}{% endif %}
+  <dl class="mt-5 grid grid-cols-2 divide-x divide-rule rounded-2xl bg-surface ring-1 ring-rule">
+    <div class="px-4 py-3"><dt class="text-[13px] text-muted">Assets</dt><dd class="mt-0.5 text-lg font-semibold">{{ money(now.assets) }}</dd></div>
+    <div class="px-4 py-3"><dt class="text-[13px] text-muted">Debts</dt><dd class="mt-0.5 text-lg font-semibold {{ 'text-debit' if now.debts > 0 }}">{{ money(now.debts) }}</dd></div>
+  </dl>
+</section>
+{% else %}
+<section>
+  <h1 class="text-3xl font-bold tracking-tight">Track your net worth</h1>
+  <p class="hint mt-2 text-base">Add each account once: savings, retirement, brokerage, credit cards, loans. Then record their balances whenever you check them, and this page charts the total over time.</p>
+</section>
+{% endif %}
+
+{% if active_accounts %}
+<section class="mt-9">
+  <h2 class="section-title">Record balances</h2>
+  <p class="hint mt-1">Leave an account blank to keep its last balance. Enter debts as the amount you owe.</p>
+  <form method="post" action="{{ url_for('networth_record') }}" class="panel mt-3">
+    {{ csrf() }}
+    <div class="border-b border-rule p-4">
+      <label class="label" for="nw-date">Date</label>
+      <input class="field" type="date" id="nw-date" name="date" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" required>
+    </div>
+    <div class="divide-y divide-rule">
+      {% for a in active_accounts %}
+      {% set last = latest.get(a.name) %}
+      <div class="flex items-center gap-3 px-4 py-3">
+        <label for="nw-{{ loop.index }}" class="min-w-0 flex-1">
+          <span class="block truncate font-medium">{{ a.name }}</span>
+          <span class="block text-[13px] text-muted">{{ KINDS[a.kind] }}{% if last %}, {{ money(last.amount) }} on {{ fmt_date(last.date, year=False) }}{% endif %}</span>
+        </label>
+        <input type="hidden" name="account" value="{{ a.name }}">
+        <div class="relative w-36 shrink-0">
+          <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted">$</span>
+          <input class="field pl-6 text-right" id="nw-{{ loop.index }}" name="amount" inputmode="decimal" autocomplete="off" placeholder="{{ '%.2f'|format(last.amount) if last else '0.00' }}">
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="border-t border-rule p-4"><button class="btn-primary w-full">Save balances</button></div>
+  </form>
+</section>
+{% endif %}
+
+<section class="mt-9">
+  <h2 class="section-title">Accounts</h2>
+  {% if accounts %}
+  <ul class="panel mt-3 divide-y divide-rule">
+    {% for a in accounts %}
+    {% set last = latest.get(a.name) %}
+    <li>
+      <a href="{{ url_for('networth_account', name=a.name) }}" class="row-link {{ 'opacity-50' if not a.active }}">
+        <div class="min-w-0 flex-1">
+          <div class="truncate font-medium">{{ a.name }}</div>
+          <div class="text-[13px] text-muted">{{ KINDS[a.kind] }}{% if not a.active %}, hidden{% endif %}</div>
+        </div>
+        <span class="whitespace-nowrap font-semibold {{ 'text-debit' if a.kind == 'debt' and last and last.amount > 0 }}">{% if last %}{{ money(-last.amount if a.kind == 'debt' else last.amount) }}{% else %}<span class="text-muted">No balance yet</span>{% endif %}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <form method="post" action="{{ url_for('networth_add_account') }}" class="panel mt-3 space-y-4 p-4" novalidate>
+    {{ csrf() }}
+    <div>
+      <label class="label" for="acct-name">Add an account</label>
+      <input class="field" id="acct-name" name="name" value="{{ account_form.name }}" maxlength="80" autocomplete="off" placeholder="Savings, 401k, Visa, Car loan"{% if account_errors.name %} aria-invalid="true" aria-describedby="acct-error"{% endif %}>
+      {% if account_errors.name %}<p class="field-error" id="acct-error">{{ account_errors.name }}</p>{% endif %}
+    </div>
+    <fieldset class="grid grid-cols-2 gap-2">
+      <legend class="sr-only">Kind</legend>
+      {% for value, label in [('asset', 'Asset'), ('debt', 'Debt')] %}
+      <label class="flex min-h-[48px] cursor-pointer items-center justify-center rounded-[10px] border border-rule bg-surface text-[15px] font-semibold text-muted has-[:checked]:border-transparent has-[:checked]:ring-2 {{ 'has-[:checked]:text-gain has-[:checked]:ring-gain' if value == 'asset' else 'has-[:checked]:text-debit has-[:checked]:ring-debit' }} has-[:focus-visible]:outline has-[:focus-visible]:outline-2">
+        <input type="radio" name="kind" value="{{ value }}" class="sr-only" {{ 'checked' if account_form.kind == value }}>{{ label }}
+      </label>
+      {% endfor %}
+    </fieldset>
+    <button class="btn-quiet w-full">Add account</button>
+  </form>
+</section>
+
+{% if snaps %}
+<section class="mt-9">
+  <h2 class="section-title">Snapshots</h2>
+  <ul class="panel mt-3 divide-y divide-rule">
+    {% for s in snaps %}
+    <li class="flex items-center gap-3 px-4 py-3">
+      <div class="min-w-0 flex-1">
+        <div class="font-medium">{{ fmt_date(s.date) }}</div>
+        <div class="text-[13px] text-muted">{% if not loop.last %}{{ money(s.net - snaps[loop.index].net, signed=True) }}{% else %}First snapshot{% endif %}</div>
+      </div>
+      <div class="text-right font-semibold {{ 'text-debit' if s.net < 0 }}">{{ money(s.net) }}</div>
+      <form method="post" action="{{ url_for('networth_delete_date', day=s.date.isoformat()) }}" data-confirm="Remove every balance recorded on {{ fmt_date(s.date) }}?">
+        {{ csrf() }}
+        <button class="-mr-2 flex h-11 w-11 items-center justify-center text-muted hover:text-debit" aria-label="Remove balances from {{ fmt_date(s.date) }}">
+          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="panel mt-9 p-4">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h2 class="section-title">Your net worth file</h2>
+      <p class="hint mt-0.5">Accounts and every balance you've recorded, in one CSV.</p>
+    </div>
+    <a href="{{ url_for('networth_download') }}" class="btn-primary shrink-0">Download CSV</a>
+  </div>
+  <details class="group mt-4 border-t border-rule pt-4"{% if upload_errors %} open{% endif %}>
+    <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-semibold">
+      Replace from a CSV
+      <span class="text-ledger group-open:hidden">Show</span><span class="hidden text-ledger group-open:inline">Hide</span>
+    </summary>
+    <p class="hint mt-2">Add rows with type <b>value</b>, a date, the account name, and the amount. New accounts need a row with type <b>account</b> and kind <b>asset</b> or <b>debt</b>.</p>
+    {{ upload_form(url_for('networth_upload'), 'Net worth CSV', upload_errors) }}
+  </details>
+</section>
+{% endblock %}

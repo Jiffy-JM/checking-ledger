@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% from "_macros.html" import amount, error, csrf with context %}
+{% block title %}{{ 'Edit ' ~ card.description if card else 'Add card' }}{% endblock %}
+{% block content %}
+<a href="{{ url_for('transactions') }}" class="text-sm font-semibold text-ledger">Back to transactions</a>
+<h1 class="mt-3 text-2xl font-bold tracking-tight">{{ 'Edit ' ~ card.description if card else 'Add card' }}</h1>
+
+{% if card %}
+<section class="mt-5">
+  <h2 class="section-title">Enter a statement</h2>
+  <p class="hint mt-1">
+    {%- if est %}Until you do, the projection uses {{ money(est.amount) }}{% if est.basis == 'average' %}, the average of your last {{ est.count }} statement{{ '' if est.count == 1 else 's' }}{% else %}, the amount you set{% endif %}.
+    {%- else %}There is no estimate for this card yet, so nothing is forecast until you enter a statement or set an amount below.{% endif -%}
+  </p>
+  {% if open_dues %}
+  <form method="post" action="{{ url_for('card_statement', card_id=card.id) }}" class="panel mt-3 grid gap-4 p-4 sm:grid-cols-2" novalidate>
+    {{ csrf() }}
+    <div>
+      <label class="label" for="st-due">Payment due</label>
+      <select class="field" id="st-due" name="due">
+        {% for due, close in open_dues %}<option value="{{ due.isoformat() }}">{{ fmt_date(due) }} ({{ 'closed' if close <= today else 'closes' }} {{ fmt_date(close, year=False) }})</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="label" for="st-amount">Statement balance</label>
+      <div class="relative">
+        <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-muted">$</span>
+        <input class="field pl-7" id="st-amount" name="amount" value="{{ statement_amount }}" inputmode="decimal" autocomplete="off" placeholder="{{ '%.2f'|format(est.amount) if est else '0.00' }}">
+      </div>
+      {{ error(errors, 'statement') }}
+    </div>
+    <button class="btn-primary sm:col-span-2">Save statement</button>
+  </form>
+  {% else %}
+  <p class="panel mt-3 px-4 py-4 hint">The next three payments already have a statement entered.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+<form method="post" class="mt-8 space-y-5" novalidate>
+  {{ csrf() }}
+  {% if card %}<h2 class="section-title">Card details</h2>{% endif %}
+  <div>
+    <label class="label" for="card-name">Name</label>
+    <input class="field" id="card-name" name="name" value="{{ form.name }}" maxlength="80" autocomplete="off" placeholder="Visa">
+    {{ error(errors, 'name') }}
+  </div>
+  <div class="grid grid-cols-2 gap-5">
+    <div>
+      <label class="label" for="card-close">Statement closes on day</label>
+      <input class="field" id="card-close" name="close_day" value="{{ form.close_day }}" inputmode="numeric" autocomplete="off" placeholder="28">
+      {{ error(errors, 'close_day') }}
+    </div>
+    <div>
+      <label class="label" for="card-due">Payment due on day</label>
+      <input class="field" id="card-due" name="due_day" value="{{ form.due_day }}" inputmode="numeric" autocomplete="off" placeholder="24">
+      {{ error(errors, 'due_day') }}
+    </div>
+  </div>
+  <p class="hint -mt-2">Day of the month, 1 to 31. In shorter months it moves to the last day.</p>
+  <fieldset>
+    <legend class="label">Estimate future payments from</legend>
+    <div class="grid grid-cols-2 gap-2">
+      {% for value, label in ESTIMATES.items() %}
+      <label class="flex min-h-[48px] cursor-pointer items-center justify-center rounded-[10px] border border-rule bg-surface text-[15px] font-semibold text-muted has-[:checked]:border-transparent has-[:checked]:text-ledger has-[:checked]:ring-2 has-[:checked]:ring-ledger has-[:focus-visible]:outline has-[:focus-visible]:outline-2">
+        <input type="radio" name="estimate" value="{{ value }}" class="sr-only" {{ 'checked' if form.estimate == value }}>{{ label }}
+      </label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  <div>
+    <label class="label" for="card-fixed">Set amount</label>
+    <div class="relative">
+      <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-muted">$</span>
+      <input class="field pl-7" id="card-fixed" name="fixed" value="{{ form.fixed }}" inputmode="decimal" autocomplete="off" placeholder="1500.00">
+    </div>
+    <p class="hint mt-1.5">Used when you choose a set amount, and as the starting estimate for a card with no statements yet.</p>
+    {{ error(errors, 'fixed') }}
+  </div>
+  <button class="btn-primary w-full">{{ 'Save changes' if card else 'Add card' }}</button>
+</form>
+
+{% if card %}
+{% if past %}
+<section class="mt-9">
+  <h2 class="section-title">Statements entered</h2>
+  <ul class="panel mt-3 divide-y divide-rule">
+    {% for r in past %}
+    <li>
+      <a href="{{ url_for('edit_transaction', row_id=r.id) }}" class="row-link">
+        <div class="min-w-0 flex-1"><div class="font-medium">Due {{ fmt_date(r.date) }}{% if r.estimate == ASSUMED %}<span class="tag">estimate</span>{% endif %}</div></div>
+        {{ amount(r.amount) }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+<div class="mt-8 grid grid-cols-2 gap-3 border-t border-rule pt-6">
+  <form method="post" action="{{ url_for('toggle_card', card_id=card.id) }}">
+    {{ csrf() }}
+    <button class="btn-quiet w-full">{{ 'Resume' if card.status == 'paused' else 'Pause' }}</button>
+  </form>
+  <form method="post" action="{{ url_for('delete_card', card_id=card.id) }}" data-confirm="Delete {{ card.description }}? Statements you entered stay as one-time transactions.">
+    {{ csrf() }}
+    <button class="btn-danger w-full">Delete</button>
+  </form>
+</div>
+<p class="hint mt-3">Pausing stops the estimated payments. Statements you entered still count.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,67 @@
+{% macro amount(value) -%}
+<span class="whitespace-nowrap font-semibold {{ 'amount-in' if value > 0 else 'amount-out' }}">{{ money(value, signed=True) }}</span>
+{%- endmacro %}
+
+{% macro category_dot(cat) -%}
+<span class="inline-block h-2 w-2 shrink-0 rounded-full {{ {'income':'bg-gain','bill':'bg-debit','creditcard':'bg-card','transfer':'bg-muted','investment':'bg-amber-500'}.get(cat, 'bg-muted') }}" aria-hidden="true"></span>
+{%- endmacro %}
+
+{% macro error(errors, key) -%}
+{% if errors.get(key) %}<p class="field-error" id="{{ key }}-error">{{ errors[key] }}</p>{% endif %}
+{%- endmacro %}
+
+{% macro csrf() -%}
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+{%- endmacro %}
+
+
+{% macro chart_box(chart, aria) -%}
+<div class="mt-5 flex gap-2">
+  <div class="-my-1.5 flex h-44 shrink-0 flex-col justify-between text-right text-[11px] text-muted sm:h-56" aria-hidden="true">
+    {% for label in chart.y_labels %}<span>{{ label }}</span>{% endfor %}
+  </div>
+  <div class="min-w-0 flex-1">
+    <div class="relative h-44 cursor-crosshair touch-pan-y select-none sm:h-56" data-chart data-mode="{{ chart.mode }}"
+         data-points='{{ chart.points|tojson }}' data-low="{{ chart.low_index }}"
+         data-origin="{{ chart.origin }}" data-span="{{ chart.span }}" role="img" aria-label="{{ aria }}">
+      <svg viewBox="0 0 1000 300" preserveAspectRatio="none" class="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+        {% for gy in chart.grid %}<line x1="0" x2="1000" y1="{{ gy }}" y2="{{ gy }}" class="stroke-rule" stroke-width="1" vector-effect="non-scaling-stroke"/>{% endfor %}
+        {% if chart.zero is not none %}<line x1="0" x2="1000" y1="{{ chart.zero }}" y2="{{ chart.zero }}" class="stroke-debit" stroke-width="1.5" stroke-dasharray="5 5" vector-effect="non-scaling-stroke"/>{% endif %}
+        <path d="{{ chart.area }}" class="fill-ledger/10"/>
+        {% if chart.ghost_line %}<path d="{{ chart.ghost_line }}" class="fill-none stroke-muted" stroke-width="1.5" stroke-dasharray="5 5" vector-effect="non-scaling-stroke"/>{% endif %}
+        <path d="{{ chart.line }}" class="fill-none stroke-ledger" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+      </svg>
+      {% if chart.mode == 'line' %}{% for p in chart.points %}<div data-mark data-x="{{ p.x }}" data-y="{{ p.y }}" class="pointer-events-none absolute hidden h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ledger ring-2 ring-paper"></div>{% endfor %}{% endif %}
+      <div data-low-dot class="pointer-events-none absolute hidden h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-debit ring-2 ring-paper"></div>
+      <div data-cursor class="pointer-events-none absolute inset-y-0 hidden w-px bg-ink/40"></div>
+      <div data-dot class="pointer-events-none absolute hidden h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ledger ring-[3px] ring-paper"></div>
+    </div>
+    <div class="mt-2 flex justify-between text-[11px] text-muted" aria-hidden="true">
+      {% for label in chart.x_labels %}<span class="{{ 'hidden sm:inline' if loop.index is even }}">{{ label }}</span>{% endfor %}
+    </div>
+  </div>
+</div>
+{%- endmacro %}
+
+{% macro backup_problem(backup) -%}
+{% if backup.state == 'stale' %}No backup has finished since {{ fmt_moment(backup.last_success) if backup.last_success else 'the service was set up' }}. Check that the backup service is running.
+{%- elif backup.last_success %}The last backup attempt{% if backup.last_attempt %} on {{ fmt_moment(backup.last_attempt) }}{% endif %} failed. The most recent good backup is from {{ fmt_moment(backup.last_success) }}.
+{%- else %}The backup service has not finished a backup yet.{% if backup.last_attempt %} Its last attempt on {{ fmt_moment(backup.last_attempt) }} failed.{% endif %}
+{%- endif %}
+{%- endmacro %}
+
+{% macro upload_form(action, label, errors, more=0) -%}
+<form method="post" action="{{ action }}" enctype="multipart/form-data" class="mt-3 space-y-3" data-confirm="This replaces everything with the file you picked. Your current file is backed up first. Continue?">
+  {{ csrf() }}
+  <label class="label" for="upload-{{ action|replace('/', '') }}">{{ label }}</label>
+  <input class="block w-full text-sm text-muted file:mr-3 file:min-h-[44px] file:rounded-[10px] file:border-0 file:bg-ink file:px-4 file:text-sm file:font-semibold file:text-paper" type="file" id="upload-{{ action|replace('/', '') }}" name="file" accept=".csv,text/csv" required>
+  <button class="btn-quiet w-full sm:w-auto">Upload and replace</button>
+  {% if errors %}
+  <div role="alert" class="rounded-xl bg-debit/10 px-4 py-3 text-sm text-debit">
+    <p class="font-semibold">Nothing was changed. Fix these in the file and upload it again:</p>
+    <ul class="mt-2 list-disc space-y-1 pl-5">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% if more %}<p class="mt-2">And {{ more }} more.</p>{% endif %}
+  </div>
+  {% endif %}
+</form>
+{%- endmacro %}

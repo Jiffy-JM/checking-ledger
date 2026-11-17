@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% from "_macros.html" import amount, error, csrf with context %}
+{% block title %}{{ 'Edit ' ~ pay.description if pay else 'Add hourly pay' }}{% endblock %}
+{% block content %}
+<a href="{{ url_for('transactions') }}" class="text-sm font-semibold text-ledger">Back to transactions</a>
+<h1 class="mt-3 text-2xl font-bold tracking-tight">{{ 'Edit ' ~ pay.description if pay else 'Add hourly pay' }}</h1>
+
+{% if pay %}
+<section class="mt-5">
+  <h2 class="section-title">Enter a paycheck</h2>
+  <p class="hint mt-1">Until you do, the projection uses {{ money(est.amount) }}. Base pay is {{ plain(est.hours) }} hours at {{ money(pay.rate) }} = {{ money(est.base) }}, and {% if est.count %}your last {{ est.count }} paycheck{{ '' if est.count == 1 else 's' }} kept {{ '%g'|format(est.kept|float) }}% of what you earned.{% else %}it assumes you keep {{ '%g'|format(est.kept|float) }}% of it. Enter a paycheck and the ledger learns your real take-home.{% endif %}</p>
+  {% if open_paydays %}
+  <form method="post" action="{{ url_for('pay_check', pay_id=pay.id) }}" class="panel mt-3 grid gap-4 p-4 sm:grid-cols-2" novalidate>
+    {{ csrf() }}
+    <div class="sm:col-span-2">
+      <label class="label" for="check-payday">Payday</label>
+      <select class="field" id="check-payday" name="payday">
+        {% for d in open_paydays %}<option value="{{ d.isoformat() }}" {{ 'selected' if d == chosen }}>{{ fmt_date(d) }}{{ ' (upcoming)' if d > today }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="label" for="check-amount">Take-home pay</label>
+      <div class="relative">
+        <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-muted">$</span>
+        <input class="field pl-7" id="check-amount" name="amount" value="{{ check.amount }}" inputmode="decimal" autocomplete="off" placeholder="{{ '%.2f'|format(est.amount) }}">
+      </div>
+      {{ error(errors, 'paycheck') }}
+    </div>
+    <div>
+      <label class="label" for="check-hours">Hours worked</label>
+      <input class="field" id="check-hours" name="hours" value="{{ check.hours }}" inputmode="decimal" autocomplete="off" placeholder="{{ plain(est.hours) }}">
+      {{ error(errors, 'worked') }}
+    </div>
+    <p class="hint sm:col-span-2">Take-home is what reached your account. Leave hours blank if you worked your usual {{ plain(est.hours) }}.</p>
+    <button class="btn-primary sm:col-span-2">Save paycheck</button>
+  </form>
+  {% else %}
+  <p class="panel mt-3 px-4 py-4 hint">Every payday so far, and the next one, already has a paycheck entered.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+<form method="post" class="mt-8 space-y-5" novalidate>
+  {{ csrf() }}
+  {% if pay %}<h2 class="section-title">Pay details</h2>{% else %}<p class="hint">For paychecks that change from one payday to the next. The ledger estimates each one from your rate, your usual hours, and the paychecks you enter.</p>{% endif %}
+  <div>
+    <label class="label" for="pay-name">Name</label>
+    <input class="field" id="pay-name" name="name" value="{{ form.name }}" maxlength="80" autocomplete="off" placeholder="Paycheck">
+    {{ error(errors, 'name') }}
+  </div>
+  <div class="grid grid-cols-2 gap-5">
+    <div>
+      <label class="label" for="pay-rate">Hourly rate</label>
+      <div class="relative">
+        <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-muted">$</span>
+        <input class="field pl-7" id="pay-rate" name="rate" value="{{ form.rate }}" inputmode="decimal" autocomplete="off" placeholder="25.00">
+      </div>
+      {{ error(errors, 'rate') }}
+    </div>
+    <div>
+      <label class="label" for="pay-hours">Hours in a usual week</label>
+      <input class="field" id="pay-hours" name="hours" value="{{ form.hours }}" inputmode="decimal" autocomplete="off" placeholder="40">
+      {{ error(errors, 'hours') }}
+    </div>
+  </div>
+  <div class="grid gap-5 sm:grid-cols-2">
+    <div>
+      <label class="label" for="pay-frequency">Paid</label>
+      <select class="field" id="pay-frequency" name="frequency">
+        {% for key in PAY_FREQUENCIES %}<option value="{{ key }}" {{ 'selected' if form.frequency == key }}>{{ FREQUENCIES[key] }}</option>{% endfor %}
+      </select>
+      {{ error(errors, 'frequency') }}
+    </div>
+    <div>
+      <label class="label" for="pay-payday">A payday</label>
+      <input class="field" type="date" id="pay-payday" name="payday" value="{{ form.payday }}">
+      {{ error(errors, 'payday') }}
+    </div>
+  </div>
+  <p class="hint -mt-2">Any one payday. Later paydays are counted from it.</p>
+  <div>
+    <label class="label" for="pay-percent">Take-home percent to start with</label>
+    <input class="field" id="pay-percent" name="percent" value="{{ form.percent }}" inputmode="decimal" autocomplete="off" placeholder="100">
+    <p class="hint mt-1.5">Optional. The share of your pay you keep after taxes and deductions, used only until you enter a paycheck.</p>
+    {{ error(errors, 'percent') }}
+  </div>
+  <button class="btn-primary w-full">{{ 'Save changes' if pay else 'Add hourly pay' }}</button>
+</form>
+
+{% if pay %}
+{% if past %}
+<section class="mt-9">
+  <h2 class="section-title">Paychecks entered</h2>
+  <ul class="panel mt-3 divide-y divide-rule">
+    {% for r in past %}
+    <li>
+      <a href="{{ url_for('edit_transaction', row_id=r.id) }}" class="row-link">
+        <div class="min-w-0 flex-1">
+          <div class="font-medium">{{ fmt_date(r.date) }}{% if r.estimate == ASSUMED %}<span class="tag">estimate</span>{% endif %}</div>
+          {% if r.hours %}<div class="text-[13px] text-muted">{{ plain(r.hours) }} hours</div>{% endif %}
+        </div>
+        {{ amount(r.amount) }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+<div class="mt-8 grid grid-cols-2 gap-3 border-t border-rule pt-6">
+  <form method="post" action="{{ url_for('toggle_pay', pay_id=pay.id) }}">
+    {{ csrf() }}
+    <button class="btn-quiet w-full">{{ 'Resume' if pay.status == 'paused' else 'Pause' }}</button>
+  </form>
+  <form method="post" action="{{ url_for('delete_pay', pay_id=pay.id) }}" data-confirm="Delete {{ pay.description }}? Paychecks you entered stay as one-time transactions.">
+    {{ csrf() }}
+    <button class="btn-danger w-full">Delete</button>
+  </form>
+</div>
+<p class="hint mt-3">Pausing stops the estimated paychecks. Paychecks you entered still count.</p>
+{% endif %}
+{% endblock %}
