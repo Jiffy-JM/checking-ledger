@@ -91,7 +91,7 @@ Your data is in the `data` folder, outside the container. Updating replaces
 the container and leaves that folder alone. Take a copy first anyway.
 
 ```
-cd ~/checking-ledger-python
+cd ~/checking-ledger
 cp -a data "data-before-update-$(date +%F)"
 
 nano .env                      # set LEDGER_IMAGE= to the new line

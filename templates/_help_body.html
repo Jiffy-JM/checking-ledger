@@ -127,7 +127,16 @@
     <p>Your data is encrypted on your server, with a password only you hold, before anything is uploaded. Keep that password somewhere off the server. Without it nobody can open the backups, including you.</p>
     <p>To turn it on, copy <code>backup.env.example</code> to <code>backup.env</code>, fill in the storage address, keys, and password, and run <code>docker compose --profile backup up -d</code>. The README has the full steps for R2.</p>
     <p>History shows when the last backup ran. Overview shows a warning if a backup fails or none has finished for two days.</p>
-    <p>To get data back, run <code>docker compose --profile backup run --rm backup restore</code>. The files land in the <code>restore</code> folder. Your live data is never overwritten. Once you have checked the files, stop the app, copy <code>restore/data</code> into <code>data</code>, and start the app again. The README has the exact commands.</p>
+    <p>Run these from the folder the app was set up in. None of them can change your live data.</p>
+    <ul class="list-disc space-y-1 pl-5">
+      <li><code>docker compose logs backup</code> shows each backup, whether it worked, and when the next one is due.</li>
+      <li><code>docker compose --profile backup run --rm backup once</code> makes one extra backup right now.</li>
+      <li><code>docker compose --profile backup run --rm backup snapshots</code> lists every backup in storage with its ID and date.</li>
+      <li><code>docker compose --profile backup run --rm backup check</code> verifies the stored backups are complete and undamaged.</li>
+      <li><code>docker compose --profile backup run --rm backup restore</code> downloads the latest backup into the <code>restore</code> folder. Add an ID from the snapshots list to fetch an older one.</li>
+      <li><code>docker compose --profile backup up -d --force-recreate backup</code> restarts the backup service after you change <code>backup.env</code>.</li>
+    </ul>
+    <p>A restore never overwrites your live data. Once you have checked the files, stop the app, copy <code>restore/data</code> into <code>data</code>, and start the app again. The README lists those commands one by one.</p>
   </div>
 </section>
 
@@ -135,7 +144,8 @@
   <h2 class="section-title text-lg">Updating the app</h2>
   <div class="mt-2 space-y-3 text-[15px] leading-relaxed">
     <p>Your data lives in the <code>data</code> folder, outside the app's container. Updating replaces the container and leaves that folder alone.</p>
-    <p>Take a copy of <code>data</code> first, then either rebuild from newer files with <code>docker compose up --build -d</code>, or set <code>LEDGER_IMAGE</code> in <code>.env</code> to a published version and run <code>docker compose pull ledger</code> followed by <code>docker compose up -d --no-build</code>.</p>
+    <p>Take a copy of <code>data</code> first, then either fetch newer files with <code>git pull</code> and rebuild with <code>docker compose up --build -d</code>, or set <code>LEDGER_IMAGE</code> in <code>.env</code> to a published version and run <code>docker compose pull ledger</code> followed by <code>docker compose up -d --no-build</code>.</p>
+    <p>If you use cloud backup, also run <code>docker compose --profile backup up -d --force-recreate backup</code>. It replaces only the backup container so it uses the newer backup script, deletes nothing, and makes one backup straight away.</p>
     <p>Always run these from the same folder. Started somewhere else, the app finds an empty data folder and looks like a fresh install; your real data is still where it was.</p>
   </div>
 </section>

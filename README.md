@@ -12,9 +12,10 @@ on made-up data, with nothing to install. See [preview/README.md](preview/README
 
 ## Set it up on your server
 
-1. Copy this folder to the server and open a terminal in it:
+1. Get the code onto the server and open a terminal in its folder:
    ```
-   cd checking-ledger-python
+   git clone https://github.com/Jiffy-JM/checking-ledger.git
+   cd checking-ledger
    ```
 2. Create your settings file from the template, then edit it:
    ```
@@ -44,7 +45,7 @@ Stop it with `docker compose down`. After replacing any files with a newer
 version, run step 3 again. Your data stays in the `data` folder.
 
 **On a Mac:** keep the folder out of Desktop, Documents, and Downloads
-(for example `~/checking-ledger-python`). macOS blocks Docker from those.
+(for example `~/checking-ledger`). macOS blocks Docker from those.
 
 ## Cloud backup (optional)
 
@@ -86,42 +87,96 @@ before it is uploaded. The storage provider receives only scrambled data.
 
 It backs up once right away, then every day at `BACKUP_TIME`. The History
 page shows when the last backup ran, and Overview shows a warning if
-backups stop working. Watch it with `docker compose logs backup`.
+backups stop working.
 
-**Get your data back:**
+### Backup commands
 
-```
-docker compose --profile backup run --rm backup snapshots     # list backups
-docker compose --profile backup run --rm backup restore       # the latest one
-docker compose --profile backup run --rm backup restore 4e0292ae
-```
+Run every command from the folder the app was set up in. Each one starts
+with `docker compose --profile backup`, because the backup service is
+optional and Compose ignores it without that flag. None of them can change
+or delete your live `data` folder: the backup container can only read it.
 
-The files appear in `restore/data/`. Nothing is written into your live
-`data` folder. Once you've checked them, put them in place:
+**Day to day**
 
-```
-docker compose stop ledger
-cp -a data data-before-restore      # keeps what you have now, just in case
-cp -a restore/data/. data/
-docker compose start ledger
-```
+| Command | What it does |
+|---|---|
+| `docker compose --profile backup up -d` | Starts the backup service in the background. It makes one backup now, then one every day at `BACKUP_TIME`. |
+| `docker compose logs backup` | Shows what the backup service has done: each backup, whether it worked, and when the next one is due. Add `-f` to keep watching; press Ctrl+C to stop watching. |
+| `docker compose --profile backup run --rm backup once` | Makes one extra backup right now and exits. Useful before an update. The daily schedule carries on as before. |
+| `docker compose --profile backup up -d --force-recreate backup` | Replaces the backup container so it reads a changed `backup.env` or a newer backup script. The app's container is left alone. Makes one backup straight away. |
+| `docker compose --profile backup stop backup` | Stops the daily backups. Backups already in storage stay there. Start again with the first command. |
 
-Do a test restore after setting this up, so you know it works before you
-need it.
+**Checking your backups**
 
-After changing `backup.env`, restart the backup service so it reads the new
-values: `docker compose --profile backup up -d --force-recreate backup`.
+| Command | What it does |
+|---|---|
+| `docker compose --profile backup run --rm backup snapshots` | Lists every backup in storage with its ID, date, and time. Changes nothing. |
+| `docker compose --profile backup run --rm backup check` | Asks restic to verify that the stored backups are complete and undamaged. Changes nothing. Worth running every few months. |
 
-On a brand-new server, copy this folder's `backup.env` (or recreate it with
-the same address, keys, and password), then run the restore command.
+**Getting data back**
+
+| Command | What it does |
+|---|---|
+| `docker compose --profile backup run --rm backup restore` | Downloads and decrypts the latest backup into `restore/data/`. Your live data is not touched. |
+| `docker compose --profile backup run --rm backup restore 4e0292ae` | The same, for one particular backup. Use an ID from the `snapshots` list in place of `4e0292ae`. |
+
+In those commands, `run --rm` means "start a temporary container for this
+one job and remove it afterwards". It doesn't disturb the backup service
+that is already running.
+
+A restore only fills the `restore` folder. Files already in `restore/data`
+with the same names are replaced. Look at what came back
+(`ls restore/data`), then put it in place yourself:
+
+| Command | What it does |
+|---|---|
+| `docker compose stop ledger` | Stops the app so nothing is written while you swap files. |
+| `cp -a data data-before-restore` | Keeps a copy of what you have now, in case you chose the wrong backup. |
+| `cp -a restore/data/. data/` | Copies the restored files over the live ones. This is the step that changes your data. |
+| `docker compose start ledger` | Starts the app again, now showing the restored ledger. |
+
+Delete `data-before-restore` once you're happy. Do a test restore after
+setting this up, so you know it works before you need it.
+
+**On a brand-new server:** clone the repository, create `.env`, and
+recreate `backup.env` with the same storage address and the same
+`RESTIC_PASSWORD`. The storage keys can be new ones for the same bucket;
+the password cannot be replaced. Then run the restore command and the four
+copy steps above.
 
 Any S3-compatible storage works the same way: change the address and keys.
 
 ## Updating
 
+Your ledger (`data/`), your settings (`.env`, `backup.env`), and your cloud
+backups all live outside the containers, so an update never touches them.
+Run these from the folder the app was set up in:
+
+```
+git pull                          # fetch the newer files
+docker compose up -d --build      # rebuild and restart the app
+```
+
+The app is unavailable for a few seconds while its container is replaced.
+
+If you use cloud backup, restart that service too, so it runs the newer
+backup script:
+
+```
+docker compose --profile backup up -d --force-recreate backup
+```
+
+What that command does: `--profile backup` includes the optional backup
+service, `--force-recreate` replaces its container even if nothing looks
+changed, and the final `backup` leaves the app's container alone. Nothing is
+deleted. The new container makes one backup straight away, which shows the
+storage settings still work. Check it with `docker compose logs backup`.
+
+To be extra careful, make a backup before updating:
+`docker compose --profile backup run --rm backup once`.
+
 To update from a published image without building on the server, see
-[docs/PUBLISHING.md](docs/PUBLISHING.md). Your `data` folder is never
-touched by an update.
+[docs/PUBLISHING.md](docs/PUBLISHING.md).
 
 ## Themes
 
