@@ -1,9 +1,0 @@
-# Cloudflare Pages response headers. The preview is told it may load only its
-# own files and may not connect to anything, so nothing typed into it can
-# leave the browser.
-/*
-  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'
-  X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
-  Referrer-Policy: no-referrer
-  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
