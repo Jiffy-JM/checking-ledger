@@ -42,6 +42,10 @@ check_settings() {
   fi
   [ "$length" -ge 20 ] || fail "RESTIC_PASSWORD must be at least 20 characters. It is the only thing protecting your backups."
   case "$RESTIC_REPOSITORY" in
+    http://*|https://*)
+      fail "The storage address must start with s3: in front of the https:// part, like s3:https://ACCOUNT_ID.r2.cloudflarestorage.com/BUCKET/checking-ledger" ;;
+  esac
+  case "$RESTIC_REPOSITORY" in
     *http://*)
       # BACKUP_ALLOW_HTTP exists only so the tests can use a storage server
       # on the same machine. Never set it for real storage.

@@ -114,6 +114,22 @@ def test_overview_shows_estimates_and_the_statement_reminder(client):
     assert '<span class="tag">estimate</span>' in page
 
 
+def test_the_list_follows_the_chart_and_the_chart_names_estimates(client):
+    short = client.get("/?h=2w").get_data(as_text=True)
+    assert "Next 2 weeks" in short and "Dec 24" not in text(client.get("/?h=2w"))
+    page = client.get("/?h=3m").get_data(as_text=True)
+    assert "Next 3 months" in page
+    # The January Visa payment is past 30 days out: listed, tagged, and named
+    # as an estimate in the chart's caption data.
+    assert re.search(r"Jan</div>\s*<div[^>]*>24</div>", page)
+    assert "Visa payment (estimate)" in page
+    # The November one was entered, so the chart doesn't call it an estimate.
+    points = re.search(r"data-points='([^']+)'", page) or re.search(r'data-points="([^"]+)"', page)
+    assert points and "Store card payment (estimate)" in page
+    year = client.get("/?h=1y").get_data(as_text=True)
+    assert "Next 12 months" in year and "more days</summary>" in year
+
+
 def test_transactions_lists_each_card_with_its_next_payment(client):
     page = text(client.get("/transactions"))
     assert "Closes the 28th, due the 24th" in page and "Nov 24, entered" in page

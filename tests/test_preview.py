@@ -72,7 +72,7 @@ def python_side(today, rows, book):
     planned = rows + core.forecast_rows(rows, core.anchor(rows).date, core.add_months(origin, 13))
     for key, (_, _, span) in webapp.HORIZONS.items():
         p = core.project(planned, today, span)
-        pts = [(q.date, q.balance, ", ".join(e.description for e in q.events)[:70]) for q in p.points]
+        pts = [(q.date, q.balance, ", ".join(e.description + (" (estimate)" if e.estimated else "") for e in q.events)[:70]) for q in p.points]
         out["horizons"][key] = {
             "origin": p.origin.isoformat(), "end": p.end.isoformat(), "origin_balance": c(p.origin_balance),
             "end_balance": c(p.end_balance), "low": [p.low.date.isoformat(), c(p.low.balance)],

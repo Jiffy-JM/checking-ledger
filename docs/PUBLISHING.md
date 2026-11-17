@@ -55,7 +55,7 @@ registry.
    and then checks the result.
 4. The run's summary page shows one line to copy, like:
    ```
-   LEDGER_IMAGE=ghcr.io/OWNER/checking-ledger@sha256:4f2a...
+   LEDGER_IMAGE=ghcr.io/jiffy-jm/checking-ledger@sha256:4f2a...
    ```
 5. The first time only: open the package on GitHub (your profile, Packages,
    `checking-ledger`), and in Package settings set visibility to Public so
@@ -82,7 +82,7 @@ So always run by digest, as the summary line above does. Then:
   list of its contents, created by GitHub during the build. To see which
   commit and workflow produced an image:
   ```
-  docker buildx imagetools inspect ghcr.io/OWNER/checking-ledger@sha256:... --format '{{ json .Provenance }}'
+  docker buildx imagetools inspect ghcr.io/jiffy-jm/checking-ledger@sha256:... --format '{{ json .Provenance }}'
   ```
 
 ## Updating your server

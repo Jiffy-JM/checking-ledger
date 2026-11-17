@@ -71,6 +71,10 @@ before it is uploaded. The storage provider receives only scrambled data.
    ```
    Fill in the address (`s3:https://ACCOUNT_ID.r2.cloudflarestorage.com/ledger-backups/checking-ledger`),
    the two keys, and a `RESTIC_PASSWORD` of at least 20 characters.
+   Keep the `s3:` at the front of the address; Cloudflare shows the
+   endpoint without it. If you created the bucket in a jurisdiction (EU or
+   FedRAMP), use that jurisdiction's endpoint, such as
+   `https://ACCOUNT_ID.eu.r2.cloudflarestorage.com`.
 4. **Save that password somewhere off the server**, such as a password
    manager. Without it, nobody can open the backups, including you.
 5. Start it:
@@ -93,8 +97,20 @@ docker compose --profile backup run --rm backup restore 4e0292ae
 ```
 
 The files appear in `restore/data/`. Nothing is written into your live
-`data` folder; copy the files across yourself once you've checked them. Do
-a test restore after setting this up, so you know it works before you need it.
+`data` folder. Once you've checked them, put them in place:
+
+```
+docker compose stop ledger
+cp -a data data-before-restore      # keeps what you have now, just in case
+cp -a restore/data/. data/
+docker compose start ledger
+```
+
+Do a test restore after setting this up, so you know it works before you
+need it.
+
+After changing `backup.env`, restart the backup service so it reads the new
+values: `docker compose --profile backup up -d --force-recreate backup`.
 
 On a brand-new server, copy this folder's `backup.env` (or recreate it with
 the same address, keys, and password), then run the restore command.

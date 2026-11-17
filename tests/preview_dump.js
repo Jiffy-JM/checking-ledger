@@ -23,7 +23,7 @@ const planned = R.concat(E.forecastRows(R, E.anchor(R).date, E.addMonths(origin,
 const c = (cents) => (cents === null ? null : (cents < 0 ? "-" : "") + E.fixed2(cents));
 for (const key of Object.keys(E.HORIZONS)) {
   const p = E.project(planned, today, E.HORIZONS[key][2]);
-  const pts = p.points.map((q) => ({ date: q.date, cents: q.balance, label: q.events.map((e) => e.description).join(", ").slice(0, 70) }));
+  const pts = p.points.map((q) => ({ date: q.date, cents: q.balance, label: q.events.map((e) => e.description + (e.estimated ? " (estimate)" : "")).join(", ").slice(0, 70) }));
   const ch = E.buildChart(pts, p.origin, p.end, "step");
   out.horizons[key] = {
     origin: E.iso(p.origin), end: E.iso(p.end), origin_balance: c(p.originBalance), end_balance: c(p.endBalance),

@@ -38,6 +38,16 @@ HORIZONS = {
     "1y": ("1Y", "1 year", ("months", 12)),
 }
 DEFAULT_HORIZON = "1y"
+# Heading of the Overview list, which covers the same stretch as the chart.
+SOON_TITLES = {"2w": "Next 2 weeks", "1m": "Next month", "3m": "Next 3 months",
+               "6m": "Next 6 months", "1y": "Next 12 months"}
+# Days with transactions shown before "Show more".
+SOON_FIRST = 12
+
+
+def event_label(event) -> str:
+    """Name of a transaction on the chart; estimates say so."""
+    return f"{event.description} (estimate)" if getattr(event, "estimated", False) else event.description
 MAX_UPLOAD = 5 * 1024 * 1024
 log = logging.getLogger("ledger.app")
 
@@ -429,11 +439,12 @@ def create_app(data_dir: str | None = None, password: str | None = None, today=N
         shown = planned + [trial] if trial else planned
         proj = core.project(shown, today, HORIZONS[horizon][2])
         plain = core.project(planned, today, HORIZONS[horizon][2]) if trial else None
-        points = [(p.date, p.balance, ", ".join(e.description for e in p.events)[:70])
+        points = [(p.date, p.balance, ", ".join(event_label(e) for e in p.events)[:70])
                   for p in proj.points]
         ghost = [(p.date, p.balance, "") for p in plain.points] if plain else None
         flow, net = core.cash_flow(planned, today)
-        soon = [p for p in proj.points[1:] if p.date < proj.origin + timedelta(days=30)]
+        # The list covers the same stretch as the chart.
+        soon = list(proj.points[1:])
         wi_args = ({"wi_dir": wi_form["direction"], "wi_amount": wi_form["amount"], "wi_date": wi_form["date"]}
                    if trial else {})
         resp = make_response(render_template(
@@ -442,6 +453,7 @@ def create_app(data_dir: str | None = None, password: str | None = None, today=N
             pending=core.pending_statements(rows, today), pending_pay=core.pending_paychecks(rows, today),
             chart=build_chart(points, proj.origin, proj.end, "step", ghost),
             horizon=horizon, horizons=HORIZONS, flow=flow, net=net, soon=soon,
+            soon_first=SOON_FIRST, soon_title=SOON_TITLES[horizon],
             base=base, today=today, can_update=today > base.date,
             min_date=base.date + timedelta(days=1),
             backup=backup_info(),

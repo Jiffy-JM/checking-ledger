@@ -76,7 +76,7 @@
       <li><b>A statement you entered.</b> When a statement closes, Overview reminds you. Open the card, pick the due date, and type the statement balance.</li>
       <li><b>An estimate</b>, until you do. Choose "Recent statements" to use the average of the card's last six statements, or "A set amount" to use a figure you type.</li>
     </ul>
-    <p>Estimates are marked "estimate" on Overview. Entering a statement replaces the estimate for that month only.</p>
+    <p>Estimates are marked "estimate" in the Overview list and on the chart. The list covers the same stretch as the chart, so choose 3M or longer to see payments further out. Entering a statement replaces the estimate for that month only.</p>
     <p>If a due date passes and you never entered the statement, the estimate keeps standing in for it. When you next update your balance, estimates dated before it are saved as they stood and marked "estimate" in History, so past figures don't shift later. They are left out when working out future averages.</p>
     <p>A new card has no statements to average, so give it a set amount to start with. The ledger assumes you pay each statement in full on its due date.</p>
     <p>Pausing a card stops its estimates. Deleting a card keeps the statements you entered as ordinary one-time transactions.</p>
@@ -127,7 +127,7 @@
     <p>Your data is encrypted on your server, with a password only you hold, before anything is uploaded. Keep that password somewhere off the server. Without it nobody can open the backups, including you.</p>
     <p>To turn it on, copy <code>backup.env.example</code> to <code>backup.env</code>, fill in the storage address, keys, and password, and run <code>docker compose --profile backup up -d</code>. The README has the full steps for R2.</p>
     <p>History shows when the last backup ran. Overview shows a warning if a backup fails or none has finished for two days.</p>
-    <p>To get data back, run <code>docker compose --profile backup run --rm backup restore</code>. The files land in the <code>restore</code> folder. Your live data is never overwritten; copy the files across yourself once you have checked them.</p>
+    <p>To get data back, run <code>docker compose --profile backup run --rm backup restore</code>. The files land in the <code>restore</code> folder. Your live data is never overwritten. Once you have checked the files, stop the app, copy <code>restore/data</code> into <code>data</code>, and start the app again. The README has the exact commands.</p>
   </div>
 </section>
 

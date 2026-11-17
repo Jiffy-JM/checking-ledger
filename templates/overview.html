@@ -85,14 +85,8 @@
   {% endif %}
 </section>
 
-<section class="mt-9">
-  <div class="mb-3 flex items-baseline justify-between">
-    <h2 class="section-title">Next 30 days</h2>
-    <a href="{{ url_for('new_transaction') }}" class="text-sm font-semibold text-ledger">Add transaction</a>
-  </div>
-  {% if soon %}
-  <ol class="panel divide-y divide-rule">
-    {% for point in soon %}{% for e in point.events %}
+{% macro soon_rows(points) %}
+    {% for point in points %}{% for e in point.events %}
     <li class="flex items-center gap-3 px-4 py-3">
       <div class="w-11 shrink-0 text-center leading-tight">
         <div class="text-[11px] font-medium text-muted">{{ e.date.strftime('%b') }}</div>
@@ -108,9 +102,22 @@
       </div>
     </li>
     {% endfor %}{% endfor %}
-  </ol>
+{% endmacro %}
+<section class="mt-9">
+  <div class="mb-3 flex items-baseline justify-between">
+    <h2 class="section-title">{{ soon_title }}</h2>
+    <a href="{{ url_for('new_transaction') }}" class="text-sm font-semibold text-ledger">Add transaction</a>
+  </div>
+  {% if soon %}
+  <ol class="panel divide-y divide-rule">{{ soon_rows(soon[:soon_first]) }}</ol>
+  {% if soon|length > soon_first %}
+  <details class="mt-3">
+    <summary class="cursor-pointer text-sm font-semibold text-ledger">Show {{ soon|length - soon_first }} more days</summary>
+    <ol class="panel mt-3 divide-y divide-rule">{{ soon_rows(soon[soon_first:]) }}</ol>
+  </details>
+  {% endif %}
   {% else %}
-  <p class="panel px-4 py-5 hint">Nothing scheduled in the next 30 days. Add your paycheck, bills, and card payments so the projection has something to work with.</p>
+  <p class="panel px-4 py-5 hint">Nothing scheduled in the {{ soon_title|lower }}. Add your paycheck, bills, and card payments so the projection has something to work with.</p>
   {% endif %}
 </section>
 

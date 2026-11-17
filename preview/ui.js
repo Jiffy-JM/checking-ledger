@@ -148,12 +148,14 @@
     var H = E.HORIZONS, proj = E.project(rows, today, H[state.horizon][2]);
     var plain = w ? E.project(planned, today, H[state.horizon][2]) : null;
     var points = proj.points.map(function (p) {
-      return { date: p.date, cents: p.balance, label: p.events.map(function (e) { return e.description; }).join(", ").slice(0, 70) };
+      return { date: p.date, cents: p.balance, label: p.events.map(function (e) { return e.description + (e.estimated ? " (estimate)" : ""); }).join(", ").slice(0, 70) };
     });
     var ghost = plain ? plain.points.map(function (p) { return { date: p.date, cents: p.balance, label: "" }; }) : null;
     var chart = E.buildChart(points, proj.origin, proj.end, "step", ghost);
     var flow = E.cashFlow(planned, today);
-    var soon = proj.points.slice(1).filter(function (p) { return p.date < proj.origin + 30; });
+    // The list covers the same stretch as the chart.
+    var soon = proj.points.slice(1), SOON_FIRST = 12;
+    var soonTitle = { "2w": "Next 2 weeks", "1m": "Next month", "3m": "Next 3 months", "6m": "Next 6 months", "1y": "Next 12 months" }[state.horizon];
     var ref = Math.max(today, base.date), todayEnd = E.endOfDay(rows, ref), todayStart = E.startOfDay(rows, ref);
     var canUpdate = today > base.date;
 
@@ -202,11 +204,11 @@
     }
     h += "</section>";
 
-    h += '<section class="mt-9"><div class="mb-3 flex items-baseline justify-between"><h2 class="section-title">Next 30 days</h2>' +
+    h += '<section class="mt-9"><div class="mb-3 flex items-baseline justify-between"><h2 class="section-title">' + soonTitle + '</h2>' +
       '<a href="#transactions" data-new="onetime" class="text-sm font-semibold text-ledger">Add transaction</a></div>';
-    if (soon.length) {
-      h += '<ol class="panel divide-y divide-rule">';
-      soon.forEach(function (point) {
+    var soonRows = function (list) {
+      var h = "";
+      list.forEach(function (point) {
         point.events.forEach(function (e, i) {
           var p = E.parts(e.date);
           h += '<li class="flex items-center gap-3 px-4 py-3">' +
@@ -218,9 +220,16 @@
             (i === point.events.length - 1 ? '<div class="text-[12px] text-muted">' + E.money(point.balance) + " after</div>" : "") + "</div></li>";
         });
       });
-      h += "</ol>";
+      return h;
+    };
+    if (soon.length) {
+      h += '<ol class="panel divide-y divide-rule">' + soonRows(soon.slice(0, SOON_FIRST)) + "</ol>";
+      if (soon.length > SOON_FIRST) {
+        h += '<details class="mt-3"><summary class="cursor-pointer text-sm font-semibold text-ledger">Show ' + (soon.length - SOON_FIRST) + " more days</summary>" +
+          '<ol class="panel mt-3 divide-y divide-rule">' + soonRows(soon.slice(SOON_FIRST)) + "</ol></details>";
+      }
     } else {
-      h += '<p class="panel px-4 py-5 hint">Nothing scheduled in the next 30 days. Add your paycheck, bills, and card payments so the projection has something to work with.</p>';
+      h += '<p class="panel px-4 py-5 hint">Nothing scheduled in the ' + soonTitle.toLowerCase() + '. Add your paycheck, bills, and card payments so the projection has something to work with.</p>';
     }
     h += "</section>";
 

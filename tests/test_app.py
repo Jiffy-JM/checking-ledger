@@ -50,7 +50,7 @@ def test_setup_then_overview(make):
     page = c.get("/")
     html = page.get_data(as_text=True)
     assert page.status_code == 200
-    assert "data-chart" in html and "Next 30 days" in html and "Paycheck" in html
+    assert "data-chart" in html and "Next 12 months" in html and "Paycheck" in html
     assert "default-src 'self'" in page.headers["Content-Security-Policy"]
 
 
