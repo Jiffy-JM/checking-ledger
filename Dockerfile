@@ -28,5 +28,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
 # One worker on purpose: all writes to the CSV files go through one process.
 # The access log records the path only, never the part after "?", so amounts
 # typed into a what-if don't end up in the logs.
-CMD ["gunicorn", "--workers", "1", "--threads", "4", "--bind", "0.0.0.0:3000", "--access-logfile", "-",
+CMD ["gunicorn", "--workers", "1", "--threads", "4", "--bind", "0.0.0.0:3000", "--access-logfile", "-", \
      "--access-logformat", "%(t)s %(m)s %(U)s %(s)s", "app:create_app()"]
