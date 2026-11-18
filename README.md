@@ -85,7 +85,9 @@ before it is uploaded. The storage provider receives only scrambled data.
    To have it start with the app from now on, add `COMPOSE_PROFILES=backup`
    to `.env`.
 
-It backs up once right away, then every day at `BACKUP_TIME`. The History
+It backs up once right away, then every day at `BACKUP_TIME`. If the
+computer is asleep or switched off at that time, the backup runs within a
+minute of it waking up, and the log says it was missed. The History
 page shows when the last backup ran, and Overview shows a warning if
 backups stop working.
 

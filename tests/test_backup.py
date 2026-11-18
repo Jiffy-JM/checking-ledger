@@ -219,3 +219,51 @@ def test_redact_hides_each_setting_wherever_it_appears():
     assert out == ("Fatal: [storage address] refused [storage key id]\n"
                    "Get https://[storage host]/bucket: [storage secret] and [backup password] twice [storage secret]\n"
                    "plain line\n")
+
+
+def test_next_due_is_the_next_scheduled_time_and_survives_daylight_saving():
+    script = SCRIPT.read_text()
+    func = script[script.index("next_due() {"):script.index("CHECK_EVERY=")]
+    def due(now, at, tz="America/New_York"):
+        env = {"PATH": os.environ["PATH"], "TZ": tz, "BACKUP_TIME": at, "FAKETIME": now}
+        # Pin "now" by replacing the one place the function reads the clock.
+        body = func.replace("current=$(date +%s)", f'current=$(date -d "{now}" +%s)').replace(
+            '$(date +%Y-%m-%d)', f'$(date -d "{now}" +%Y-%m-%d)')
+        out = subprocess.run(["sh", "-c", body + "\nnext_due"], env=env, capture_output=True, text=True).stdout.strip()
+        return subprocess.run(["date", "-d", "@" + out, "+%Y-%m-%d %H:%M"], env=env, capture_output=True, text=True).stdout.strip()
+    assert due("2026-11-17 01:00:00", "03:15") == "2026-11-17 03:15"          # later today
+    assert due("2026-11-17 12:47:00", "03:15") == "2026-11-18 03:15"          # tomorrow
+    assert due("2026-11-17 03:15:00", "03:15") == "2026-11-18 03:15"          # never twice in a row
+    assert due("2026-03-07 12:00:00", "03:15") == "2026-03-08 03:15"          # clocks spring forward overnight
+    assert due("2026-10-31 12:00:00", "03:15") == "2026-11-01 03:15"          # clocks fall back overnight
+
+
+@needs_restic
+def test_the_schedule_checks_the_real_clock_and_runs_on_time(folders):
+    """Runs the service with a backup due in a few seconds and a one-second
+    clock check. The second backup must happen at the scheduled minute."""
+    import time
+    if 60 - time.gmtime().tm_sec < 8:             # too close to the minute; wait it out
+        time.sleep(60 - time.gmtime().tm_sec + 1)
+    at = time.strftime("%H:%M", time.gmtime(time.time() + 60))
+    settings = {"PATH": os.environ["PATH"], "HOME": str(folders), "DATA_DIR": str(folders / "data"),
+                "STATUS_FILE": str(folders / "status" / "status.json"), "RESTORE_DIR": str(folders / "restore"),
+                "RESTIC_CACHE_DIR": str(folders / "cache"), "RESTIC_REPOSITORY": str(folders / "repo"),
+                "RESTIC_PASSWORD": PASSWORD, "BACKUP_TIME": at, "BACKUP_CHECK_SECONDS": "1", "BACKUP_PRUNE": "0",
+                "TZ": "UTC"}
+    service = subprocess.Popen(["sh", str(SCRIPT)], env=settings, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    try:
+        deadline = time.time() + 120
+        while time.time() < deadline:
+            status = (folders / "status" / "status.json")
+            if status.exists() and json.loads(status.read_text())["snapshots"] >= 2:
+                break
+            time.sleep(1)
+    finally:
+        service.terminate()
+        output = service.communicate(timeout=10)[0]
+    assert json.loads((folders / "status" / "status.json").read_text())["snapshots"] >= 2, output
+    assert output.count("Backup finished.") >= 2 and "Next backup at" in output
+    # The second backup ran at the scheduled minute, not before it.
+    second = re.findall(r"(\d\d:\d\d):\d\dZ Backup starting", output)[1]
+    assert second >= at

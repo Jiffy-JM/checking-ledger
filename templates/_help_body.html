@@ -126,7 +126,7 @@
     <p>An optional second container can send encrypted copies of your data to cloud storage, such as Cloudflare R2, every night. It is off until you set it up. This app itself never connects to the internet and never sees the storage keys.</p>
     <p>Your data is encrypted on your server, with a password only you hold, before anything is uploaded. Keep that password somewhere off the server. Without it nobody can open the backups, including you.</p>
     <p>To turn it on, copy <code>backup.env.example</code> to <code>backup.env</code>, fill in the storage address, keys, and password, and run <code>docker compose --profile backup up -d</code>. The README has the full steps for R2.</p>
-    <p>History shows when the last backup ran. Overview shows a warning if a backup fails or none has finished for two days.</p>
+    <p>If the computer is asleep at the backup time, the backup runs within a minute of it waking. History shows when the last backup ran. Overview shows a warning if a backup fails or none has finished for two days.</p>
     <p>Run these from the folder the app was set up in. None of them can change your live data.</p>
     <ul class="list-disc space-y-1 pl-5">
       <li><code>docker compose logs backup</code> shows each backup, whether it worked, and when the next one is due.</li>

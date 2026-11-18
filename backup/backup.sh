@@ -172,12 +172,21 @@ run_backup() {
   esac
 }
 
-seconds_until_next() {
+# The next scheduled time, as seconds since 1970, strictly after now. Worked
+# out from the calendar date each time, so a change to or from daylight
+# saving time doesn't shift the backup by an hour.
+next_due() {
   current=$(date +%s)
   target=$(date -d "$(date +%Y-%m-%d) $BACKUP_TIME:00" +%s)
-  [ "$target" -gt "$current" ] || target=$((target + 86400))
-  echo $((target - current))
+  if [ "$target" -le "$current" ]; then
+    target=$(date -d "$(date -d "@$((current + 86400))" +%Y-%m-%d) $BACKUP_TIME:00" +%s)
+  fi
+  echo "$target"
 }
+
+# How often the schedule looks at the clock. Short on purpose: a computer
+# that sleeps through the scheduled time backs up within this long of waking.
+CHECK_EVERY="${BACKUP_CHECK_SECONDS:-60}"
 
 # ------------------------------------------------------------------ commands
 command="${1:-run}"
@@ -187,13 +196,24 @@ mkdir -p "$RESTIC_CACHE_DIR"
 case "$command" in
   run)
     trap 'log "Stopping."; exit 0' TERM INT
+    # Worked out before the first backup, so a scheduled time that passes
+    # while that backup is running isn't skipped.
+    due=$(next_due)
     run_backup || true
+    log "Next backup at $BACKUP_TIME (in $(( ($due - $(date +%s)) / 60 )) minutes)."
     while true; do
-      wait_for=$(seconds_until_next)
-      log "Next backup at $BACKUP_TIME (in $((wait_for / 60)) minutes)."
-      sleep "$wait_for" &
+      # Short naps, checking the real clock after each one. A single long
+      # sleep would pause while the computer sleeps and run hours late.
+      sleep "$CHECK_EVERY" &
       wait $! || true
+      current=$(date +%s)
+      [ "$current" -ge "$due" ] || continue
+      if [ "$current" -gt $((due + CHECK_EVERY * 2)) ]; then
+        log "The $BACKUP_TIME backup was missed, probably because this computer was asleep. Backing up now."
+      fi
       run_backup || true
+      due=$(next_due)
+      log "Next backup at $BACKUP_TIME (in $(( ($due - $(date +%s)) / 60 )) minutes)."
     done ;;
   once)
     run_backup ;;
