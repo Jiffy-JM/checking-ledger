@@ -81,3 +81,48 @@ def test_uploaded_ids_are_replaced_unless_plain():
 def test_names_cannot_start_a_spreadsheet_formula():
     for bad in ('=HYPERLINK("http://x")', "+1+1", "-2+3", "@SUM(A1)", "  =cmd"):
         assert core.clean_text(bad)[:1] not in ("=", "+", "-", "@")
+
+
+def test_settings_from_env_never_reach_a_page_header_cookie_or_data_file(tmp_path, monkeypatch):
+    """Every page is fetched with marker values for the settings in .env.
+    None of them may appear in a response, a header, the session cookie, or
+    anything written to the data folder."""
+    import base64
+    import os
+    import re
+    import zlib
+    from app import create_app
+    markers = {"APP_PASSWORD": "Pw-CANARY-7f3a9c1e55", "SECRET_KEY": "Sk-CANARY-91be07aa42",
+               "ALLOWED_HOSTS": "canary-host.test,localhost", "HOST_IP": "10.99.88.77", "LEDGER_IMAGE": "ghcr.io/canary/img"}
+    for key, value in markers.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    app = create_app()
+    c, host, seen = app.test_client(), {"Host": "localhost"}, []
+
+    def grab(response):
+        seen.append(response.get_data(as_text=True) + "\n".join(f"{k}: {v}" for k, v in response.headers))
+        return response
+
+    for path in ("/", "/login", "/healthz", "/nope", "/history"):
+        grab(c.get(path, headers=host))
+    assert grab(c.get("/", headers={"Host": "evil.example"})).status_code == 400
+    token = re.search(r'name="_csrf" value="([^"]+)"', c.get("/login", headers=host).get_data(as_text=True)).group(1)
+    grab(c.post("/login", data={"_csrf": token, "password": "wrong-guess"}, headers=host))
+    assert grab(c.post("/login", data={"_csrf": token, "password": markers["APP_PASSWORD"]}, headers=host)).status_code == 302
+    token = re.search(r'name="_csrf" value="([^"]+)"', c.get("/setup", headers=host).get_data(as_text=True)).group(1)
+    grab(c.post("/setup", data={"_csrf": token, "balance": "1000", "date": "2026-11-16"}, headers=host, follow_redirects=True))
+    assert (tmp_path / "ledger.csv").exists()
+    pages = sorted({str(r) for r in app.url_map.iter_rules() if "GET" in r.methods and "<" not in str(r)})
+    assert len(pages) >= 10
+    for path in pages + ["/cards/x", "/pay/x", "/?h=bad&wi_amount=abc&wi_date=zz"]:
+        grab(c.get(path, headers=host))
+    cookie = c.get_cookie("session").value
+    part = cookie.lstrip(".").split(".")[0]
+    raw = base64.urlsafe_b64decode(part + "=" * (-len(part) % 4))
+    seen.append(cookie + (zlib.decompress(raw) if cookie.startswith(".") else raw).decode("utf-8", "replace"))
+    for folder, _, files in os.walk(tmp_path):
+        seen.extend(open(os.path.join(folder, name), "rb").read().decode("utf-8", "replace") for name in files)
+    everything = "\n".join(seen)
+    for value in ("Pw-CANARY-7f3a9c1e55", "Sk-CANARY-91be07aa42", "canary-host.test", "10.99.88.77", "ghcr.io/canary/img"):
+        assert value not in everything

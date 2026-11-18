@@ -87,6 +87,35 @@ write_status() {
   fi
 }
 
+# ------------------------------------------------------------------- redact
+# Nothing that restic or the storage provider prints should carry a key, the
+# password, or the storage address into the log or the status file. restic
+# doesn't print keys or passwords itself; this is a second line of defence
+# for error messages that come back from the storage provider.
+STORAGE_HOST=$(printf '%s' "${RESTIC_REPOSITORY:-}" | sed -n 's#^[a-z0-9]*:https\{0,1\}://\([^/]*\).*#\1#p')
+export STORAGE_HOST
+redact() {
+  awk '
+    function hide(text, secret, label,    i, out) {
+      if (length(secret) < 4) return text
+      out = ""
+      while ((i = index(text, secret)) > 0) {
+        out = out substr(text, 1, i - 1) label
+        text = substr(text, i + length(secret))
+      }
+      return out text
+    }
+    {
+      line = $0
+      line = hide(line, ENVIRON["AWS_SECRET_ACCESS_KEY"], "[storage secret]")
+      line = hide(line, ENVIRON["RESTIC_PASSWORD"], "[backup password]")
+      line = hide(line, ENVIRON["AWS_ACCESS_KEY_ID"], "[storage key id]")
+      line = hide(line, ENVIRON["RESTIC_REPOSITORY"], "[storage address]")
+      line = hide(line, ENVIRON["STORAGE_HOST"], "[storage host]")
+      print line
+    }'
+}
+
 # -------------------------------------------------------------------- backup
 # Every step is checked by hand: "set -e" does not apply inside a function
 # that is called from an "if", so a failed step must return on its own.
@@ -129,8 +158,8 @@ run_backup() {
   log "Backup starting."
   result=0
   backup_steps > "$output" 2>&1 || result=$?
-  cat "$output"
-  reason=$(grep -v '^[[:space:]]*$' "$output" | tail -n 1)
+  redact < "$output"
+  reason=$(redact < "$output" | grep -v '^[[:space:]]*$' | tail -n 1)
   rm -f "$output"
   case "$result" in
     0) write_status true ""

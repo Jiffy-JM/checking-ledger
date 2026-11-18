@@ -193,3 +193,29 @@ def test_status_file_never_contains_settings(folders):
     run(folders, "once", AWS_SECRET_ACCESS_KEY="super-secret-storage-key")
     text = (folders / "status" / "status.json").read_text()
     assert PASSWORD not in text and "super-secret-storage-key" not in text
+
+
+@needs_restic
+def test_the_log_and_status_never_show_keys_password_or_address(folders):
+    """Whatever restic prints, the log hides the settings."""
+    result = run(folders, "once", AWS_ACCESS_KEY_ID="key-id-0123456789", AWS_SECRET_ACCESS_KEY="super-secret-storage-key")
+    wrong = run(folders, "once", RESTIC_PASSWORD="this-is-not-the-right-password")
+    seen = result.stdout + result.stderr + wrong.stdout + wrong.stderr + (folders / "status" / "status.json").read_text()
+    assert result.returncode == 0 and "snapshot" in seen
+    for secret in (PASSWORD, "this-is-not-the-right-password", "key-id-0123456789", "super-secret-storage-key", str(folders / "repo")):
+        assert secret not in seen
+    assert "[storage address]" in seen                      # restic named the address; the log hid it
+
+
+def test_redact_hides_each_setting_wherever_it_appears():
+    env = {"PATH": os.environ["PATH"], "RESTIC_REPOSITORY": "s3:https://acct123.r2.cloudflarestorage.com/bucket/checking-ledger",
+           "RESTIC_PASSWORD": PASSWORD, "AWS_ACCESS_KEY_ID": "key-id-0123456789", "AWS_SECRET_ACCESS_KEY": "super/secret+storage=key"}
+    script = SCRIPT.read_text()
+    start, end = script.index("STORAGE_HOST="), script.index("# -------------------------------------------------------------------- backup")
+    said = ("Fatal: s3:https://acct123.r2.cloudflarestorage.com/bucket/checking-ledger refused key-id-0123456789\n"
+            "Get https://acct123.r2.cloudflarestorage.com/bucket: super/secret+storage=key and correct-horse-battery-staple-1 twice super/secret+storage=key\n"
+            "plain line\n")
+    out = subprocess.run(["sh", "-c", script[start:end] + "\nredact"], input=said, env=env, capture_output=True, text=True).stdout
+    assert out == ("Fatal: [storage address] refused [storage key id]\n"
+                   "Get https://[storage host]/bucket: [storage secret] and [backup password] twice [storage secret]\n"
+                   "plain line\n")

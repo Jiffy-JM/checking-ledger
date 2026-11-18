@@ -67,6 +67,18 @@ of never connecting to the internet.
 
 Limits to know about:
 
+* **Logs and status.** restic does not print keys or passwords. As a second
+  line of defence, the backup script replaces the storage keys, the backup
+  password, and the storage address with labels such as `[storage secret]`
+  before anything reaches `docker compose logs backup` or the status file
+  the app reads. The one-off commands you type yourself (`snapshots`,
+  `check`, `restore`) print restic's output directly to your own terminal.
+* Anyone who can run `docker` on the server can read the backup container's
+  settings with `docker inspect` or `docker compose config`. Treat Docker
+  access on that machine as access to the keys, and don't paste the output
+  of those two commands anywhere.
+* A restore leaves readable copies of your ledger in the `restore` folder.
+  Delete them when you're done.
 * `backup.env` holds the password and keys in plain text on the server. Keep
   it readable only by you (`chmod 600 backup.env`). Anyone who takes over
   the server can read it, but they could read the ledger itself anyway.
